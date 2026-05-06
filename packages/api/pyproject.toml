@@ -1,0 +1,17 @@
+[project]
+name = "quobuz-api"
+version = "0.1.0"
+description = "Qobuz playlist downloader API server"
+requires-python = ">=3.11"
+dependencies = [
+    "quobuz-core",
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "aiosqlite>=0.20,<1.0",
+    "apscheduler>=3.10,<4.0",
+    "python-multipart>=0.0.9,<1.0",
+    "cryptography>=43.0,<45.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/quobuz_api"]

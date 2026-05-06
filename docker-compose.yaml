@@ -1,0 +1,11 @@
+services:
+  quobuz:
+    build: .
+    container_name: quobuz
+    ports:
+      - "3420:3420"
+    volumes:
+      - ./quobuz_data:/app/quobuz_data
+      - ~/Music/Qobuz:/music
+    env_file: .env
+    restart: unless-stopped
