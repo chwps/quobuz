@@ -1,47 +1,51 @@
-# ---- Stage 1: Build React WebUI ----
-FROM node:20-alpine AS webui-builder
+FROM node:18-alpine AS webui-builder
 
 WORKDIR /app/web
+
 COPY web/package.json web/package-lock.json* ./
-RUN npm install --production=false
+
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
+
 COPY web/ ./
+
 RUN npm run build
 
-# ---- Stage 2: Python runtime ----
 FROM python:3.11-slim AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 
-# System deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+COPY packages/core/pyproject.toml packages/core/uv.lock* ./packages/core/
+COPY packages/api/pyproject.toml packages/api/uv.lock* ./packages/api/
+COPY packages/core/src ./packages/core/src
+COPY packages/api/src ./packages/api/src
 
-# Python deps
-RUN pip install --no-cache-dir uv
+RUN if [ -f packages/core/uv.lock ]; then \
+      uv pip sync packages/core/uv.lock packages/api/uv.lock; \
+    else \
+      uv pip install -e ./packages/core -e ./packages/api; \
+    fi
 
-# Copy Python packages
-COPY packages/core/pyproject.toml packages/core/src/ ./packages/core/
-COPY packages/api/pyproject.toml packages/api/src/ ./packages/api/
-
-# Install with uv
-RUN uv pip install --system ./packages/core ./packages/api
-
-# Copy WebUI build
-COPY --from=webui-builder /app/quobuz_data/webui_build /app/quobuz_data/webui_build
-
-# Create data directory
-RUN mkdir -p /app/quobuz_data
-
-# Entry point
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
-
-ENV PORT=3420
+ENV PYTHONPATH=/app
 ENV DATA_DIR=/app/quobuz_data
-ENV OUTPUT_DIR=/music
-ENV SYNC_SCHEDULE="0 */6 * * *"
+
+RUN mkdir -p /app/quobuz_data/webui_build
+
+COPY --from=webui-builder /app/web/dist /app/quobuz_data/webui_build
+
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 3420
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

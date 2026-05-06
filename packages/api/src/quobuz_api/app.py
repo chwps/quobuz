@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -81,11 +82,11 @@ def create_app() -> FastAPI:
     app.include_router(router)
 
     # Serve static files (React build)
-    webui_dir = Path(settings.data_dir) / "webui_build"
+    webui_dir = Path(os.environ.get("DATA_DIR", settings.data_dir if hasattr(settings, 'data_dir') else "/app/quobuz_data")) / "webui_build"
     if webui_dir.exists():
         app.mount("/static", StaticFiles(directory=str(webui_dir)), name="static")
 
-    @app("/{full_path:path}")
+    @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Serve React SPA — fallback to index.html for client-side routing."""
         if full_path.startswith("api/") or full_path.startswith(".well-known"):
