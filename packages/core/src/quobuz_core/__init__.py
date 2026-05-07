@@ -1,7 +1,7 @@
 """quobuz-core — Qobuz playlist downloader core library."""
 
 from .api import QobuzAPI, QobuzAuthError, QobuzAPIError
-from .download import DownloadService, DownloadStats
+from .download import DownloadConfig, DownloadService, DownloadStats
 from .models import (
     QobuzQuality,
     QualityLabel,
@@ -20,6 +20,7 @@ __all__ = [
     "QobuzAPI",
     "QobuzAuthError",
     "QobuzAPIError",
+    "DownloadConfig",
     "DownloadService",
     "DownloadStats",
     "QobuzQuality",

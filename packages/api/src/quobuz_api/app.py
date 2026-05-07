@@ -20,11 +20,11 @@ from .service import QuobuzDownloadService
 
 logger = logging.getLogger(__name__)
 
-# Global instances
-db: Database
-service: QuobuzDownloadService
-scheduler: SyncScheduler
-settings: Settings
+# Global instances — initialized in lifespan()
+db: Database | None = None
+service: QuobuzDownloadService | None = None
+scheduler: SyncScheduler | None = None
+settings: Settings | None = None
 
 
 @asynccontextmanager
@@ -81,26 +81,25 @@ def create_app() -> FastAPI:
     # API routes
     app.include_router(router)
 
-    # Serve static files (React build)
-    webui_dir = Path(os.environ.get("DATA_DIR", settings.data_dir if hasattr(settings, 'data_dir') else "/app/quobuz_data")) / "webui_build"
-    if webui_dir.exists():
-        app.mount("/static", StaticFiles(directory=str(webui_dir)), name="static")
-
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Serve React SPA — fallback to index.html for client-side routing."""
         if full_path.startswith("api/") or full_path.startswith(".well-known"):
-            return FileResponse(webui_dir / "index.html")
+            return _serve_index()
 
-        file_path = webui_dir / full_path
+        data_dir = os.environ.get("DATA_DIR", "/app/quobuz_data")
+        file_path = Path(data_dir) / "webui_build" / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(str(file_path))
 
-        index_file = webui_dir / "index.html"
+        return _serve_index()
+
+    def _serve_index():
+        data_dir = os.environ.get("DATA_DIR", "/app/quobuz_data")
+        index_file = Path(data_dir) / "webui_build" / "index.html"
         if index_file.exists():
             return FileResponse(str(index_file))
-
-        return FileResponse(webui_dir / "index.html")
+        return FileResponse(index_file)
 
     return app
 
