@@ -4,11 +4,7 @@ WORKDIR /app/web
 
 COPY web/package.json web/package-lock.json* ./
 
-RUN if [ -f package-lock.json ]; then \
-      npm ci; \
-    else \
-      npm install; \
-    fi
+RUN npm install --legacy-peer-deps
 
 COPY web/ ./
 
