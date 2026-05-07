@@ -64,6 +64,7 @@ docker compose up -d
 | `SYNC_SCHEDULE` | `0 */6 * * *` | Cron pour sync auto (seul paramètre cron en ENV) |
 | `OUTPUT_DIR` | `/app/Music/Qobuz` | Répertoire de sortie |
 | `DATA_DIR` | `/app/quobuz_data` | Répertoire de données |
+| `WEBUI_DIR` | `/app/webui_build` | Répertoire du build React (hors DATA_DIR) |
 | `API_KEY` | *vide* | Clé API optionnelle |
 | `LOG_LEVEL` | `INFO` | DEBUG, INFO, WARNING, ERROR |
 
