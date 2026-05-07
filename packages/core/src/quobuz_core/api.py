@@ -208,62 +208,81 @@ class QobuzAPI:
             return None
 
     async def extract_bundle_config(self) -> BundleConfig:
-        """Extract app_id, app_secret, tokens from play.qobuz.com bundle.js."""
+        """Extract app_id, app_secret from play.qobuz.com login page bundle.js.
+
+        Method: fetch /login page -> extract bundle.js URL -> parse app credentials.
+        Based on qobuz-dl which maintains working extraction patterns.
+        """
         async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(f"{QOBUZ_DOMAIN}/config.json")
+            # Step 1: GET /login page (not /config.json which now returns HTML SPA)
+            resp = await client.get(f"{QOBUZ_DOMAIN}/login")
             resp.raise_for_status()
-            config = resp.json()
+            login_html = resp.text
 
-        bundle = BundleConfig()
+            # Step 2: Extract bundle.js URL from HTML
+            match = re.search(r'src="([^"]+bundle[^"]+\.js)"', login_html)
+            if not match:
+                raise RuntimeError("Could not find bundle.js URL on login page")
 
-        # Try multiple patterns from the config
-        app_config = config.get("app", {})
-        qobuz_config = config.get("qobuz", {})
-        api_config = config.get("api", {})
+            bundle_url = match.group(1)
+            if not bundle_url.startswith("http"):
+                bundle_url = f"{QOBUZ_DOMAIN}{bundle_url}"
 
-        # Merge all config sources
-        merged = {}
-        merged.update(api_config)
-        merged.update(qobuz_config)
-        merged.update(app_config)
+            # Step 3: Download the bundle.js
+            resp = await client.get(bundle_url)
+            resp.raise_for_status()
+            js_content = resp.text
 
-        # Direct keys
-        bundle.app_id = str(merged.get("app-id", merged.get("appId", merged.get("app_id", ""))))
-        bundle.app_secret = merged.get("app-secret", merged.get("appSecret", merged.get("app_secret", ""))) or ""
-        bundle.user_auth_token = merged.get("user-auth-token", merged.get("userAuthToken", merged.get("user_auth_token", ""))) or ""
-        bundle.source_token = merged.get("source-token", merged.get("sourceToken", merged.get("source_token", ""))) or ""
-
-        # If we didn't get values from config.json, try to parse from main JS file
-        if not bundle.app_id:
-            try:
-                resp = await client.get(f"{QOBUZ_DOMAIN}/static/js/main.js")
-                resp.raise_for_status()
-                content = resp.text
-                bundle = self._parse_bundle_content(content)
-            except Exception as e:
-                logger.warning("Could not extract bundle config: %s", e)
-
-        return bundle
+        # Step 4: Parse app_id and app_secret from bundle.js
+        return self._parse_bundle_content(js_content)
 
     @staticmethod
     def _parse_bundle_content(content: str) -> BundleConfig:
-        """Parse app_id and secrets from JavaScript bundle content."""
+        """Parse app_id and app_secret from JavaScript bundle content.
+
+        Uses patterns from qobuz-dl which are actively maintained.
+        """
         config = BundleConfig()
 
-        # Pattern 1: Object literal with app_id
-        match = re.search(r'app_id["\':]\s*["\'](\d+)["\']', content)
+        # Pattern from qobuz-dl: production:{api:{appId:"(\d{9})",appSecret:"\w{32}"
+        match = re.search(
+            r'production:\{api:\{appId:"(\d{9})",appSecret:"(\w{32})"',
+            content,
+        )
+        if match:
+            config.app_id = match.group(1)
+            config.app_secret = match.group(2)
+            return config
+
+        # Pattern 2: Object literal with app_id
+        match = re.search(r'"app_id"\s*:\s*"(\d+)"', content)
         if match:
             config.app_id = match.group(1)
 
-        # Pattern 2: app-secret / appSecret
-        for pattern in [
-            r'app[_-]?secret["\':]\s*["\']([^"\']+)["\']',
-            r'appSecret["\':]\s*["\']([^"\']+)["\']',
-        ]:
-            match = re.search(pattern, content)
-            if match:
-                config.app_secret = match.group(1)
-                break
+        # Pattern 3: appSecret near appId
+        if not config.app_secret:
+            for pattern in [
+                r'"app_secret"\s*:\s*"([^"]+)"',
+                r'appSecret["\s:]+["\']([a-zA-Z0-9]{20,})["\']',
+                r'app[_-]?secret["\s:=]+["\']([a-zA-Z0-9]{20,})["\']',
+            ]:
+                match = re.search(pattern, content)
+                if match:
+                    config.app_secret = match.group(1)
+                    break
+
+        # Pattern 4: auth seeds (used by qobuz-dl for token generation)
+        seed_match = re.search(
+            r'authSeeds:\s*\[([^\]]+)\]',
+            content,
+        )
+        if seed_match:
+            seeds_str = seed_match.group(1)
+            seed_matches = re.findall(r'"([^"]+)"', seeds_str)
+            if len(seed_matches) >= 2:
+                # Use first seed as app_secret fallback
+                if not config.app_secret:
+                    config.app_secret = seed_matches[0]
 
         return config
 
