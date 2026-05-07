@@ -87,16 +87,24 @@ def create_app() -> FastAPI:
         if full_path.startswith("api/") or full_path.startswith(".well-known"):
             return _serve_index()
 
+        webui_dir = os.environ.get("WEBUI_DIR", "/app/webui_build")
         data_dir = os.environ.get("DATA_DIR", "/app/quobuz_data")
-        file_path = Path(data_dir) / "webui_build" / full_path
+        # Try dedicated WebUI dir first, then fallback to DATA_DIR/webui_build
+        file_path = Path(webui_dir) / full_path
+        if not file_path.exists() or not file_path.is_file():
+            file_path = Path(data_dir) / "webui_build" / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(str(file_path))
 
         return _serve_index()
 
     def _serve_index():
+        webui_dir = os.environ.get("WEBUI_DIR", "/app/webui_build")
         data_dir = os.environ.get("DATA_DIR", "/app/quobuz_data")
-        index_file = Path(data_dir) / "webui_build" / "index.html"
+        # Try dedicated WebUI dir first, then fallback to DATA_DIR/webui_build
+        index_file = Path(webui_dir) / "index.html"
+        if not index_file.exists():
+            index_file = Path(data_dir) / "webui_build" / "index.html"
         if index_file.exists():
             return FileResponse(str(index_file))
         return FileResponse(index_file)

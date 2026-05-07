@@ -45,8 +45,8 @@ RUN uv pip install --system --break-system-packages \
     -e ./packages/api
 
 # ── Copy built WebUI ──
-# Vite outDir: ../quobuz_data/webui_build (relative to /app/web)
-COPY --from=webui-builder /app/quobuz_data/webui_build /app/quobuz_data/webui_build
+# OUTSIDE DATA_DIR so volume mounts don't overwrite it
+COPY --from=webui-builder /app/quobuz_data/webui_build /app/webui_build
 
 # ── Copy entrypoint ──
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh

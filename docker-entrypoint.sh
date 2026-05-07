@@ -4,6 +4,7 @@ set -e
 echo "=== Quobuz Playlist Downloader ==="
 echo "Port: ${PORT:-3420}"
 echo "Data: ${DATA_DIR:-/app/quobuz_data}"
+echo "WebUI: ${WEBUI_DIR:-/app/webui_build}"
 echo "Output: ${OUTPUT_DIR:-/music}"
 echo "Sync: ${SYNC_SCHEDULE:-0 */6 * * *}"
 echo ""
