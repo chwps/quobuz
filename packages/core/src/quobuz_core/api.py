@@ -220,7 +220,10 @@ class QobuzAPI:
             login_html = resp.text
 
             # Step 2: Extract bundle.js URL from HTML
-            match = re.search(r'src="([^"]+bundle[^"]+\.js)"', login_html)
+            match = re.search(r'src="(/[^"]*bundle[^"]*\.js)"', login_html)
+            if not match:
+                # Fallback: any JS under /resources/
+                match = re.search(r'src="(/resources/[^"]+\.js)"', login_html)
             if not match:
                 raise RuntimeError("Could not find bundle.js URL on login page")
 
@@ -283,6 +286,15 @@ class QobuzAPI:
                 # Use first seed as app_secret fallback
                 if not config.app_secret:
                     config.app_secret = seed_matches[0]
+
+        # Pattern 5: app_client_secret / oauth_client_secret (qobuz-dl)
+        acs_match = re.search(r'"app_client_secret"\s*:\s*"(\w{32})"', content)
+        if acs_match:
+            config.app_secret = acs_match.group(1)
+
+        ocs_match = re.search(r'"oauth_client_secret"\s*:\s*"(\w{32})"', content)
+        if ocs_match:
+            config.app_secret = ocs_match.group(1)
 
         return config
 
