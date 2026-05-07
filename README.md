@@ -9,7 +9,7 @@ Qobuz playlist downloader avec WebUI — télécharge, organise et sync automati
 
 ```bash
 # 1. Pull l'image
-docker pull chwps/quobuz:latest
+docker pull ghcr.io/chwps/quobuz:latest
 
 # 2. Configurer
 mkdir -p quobuz
@@ -25,7 +25,7 @@ docker run -d \
   -v $(pwd)/Music/Qobuz:/app/Music/Qobuz \
   --env-file .env \
   --restart unless-stopped \
-  chwps/quobuz:latest
+  ghcr.io/chwps/quobuz:latest
 
 # 4. Accéder à la WebUI
 # http://localhost:3420
@@ -36,7 +36,7 @@ docker run -d \
 ```yaml
 services:
   quobuz:
-    image: chwps/quobuz:latest
+    image: ghcr.io/chwps/quobuz:latest
     container_name: quobuz
     ports:
       - "3420:3420"
@@ -110,7 +110,7 @@ cd web && npm install && npm run dev
 
 ## Docker Hub
 
-L'image est automatiquement construite et publiée sur [Docker Hub](https://hub.docker.com/r/chwps/quobuz) à chaque push sur `main`.
+L'image est automatiquement construite et publiée sur [GitHub Container Registry](https://github.com/chwps/quobuz/pkgs/container/quobuz) à chaque push sur `main`.
 
 **Tags disponibles :**
 - `latest` — dernière version de `main`

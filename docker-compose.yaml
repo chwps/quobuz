@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   quobuz:
-    image: chwps/quobuz:latest
+    image: ghcr.io/chwps/quobuz:latest
     container_name: quobuz
     ports:
       - "3420:3420"
