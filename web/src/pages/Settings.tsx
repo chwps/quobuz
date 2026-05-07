@@ -109,6 +109,14 @@ export default function Settings() {
             value={settings.qobuz_password || ''}
             onChange={(e) => updateSetting('qobuz_password', e.target.value)}
             type="password"
+            description="Leave empty if using Auth Token below"
+          />
+          <Input
+            label="Auth Token"
+            placeholder="Paste your Qobuz Auth Token here"
+            value={settings.qobuz_auth_token || ''}
+            onChange={(e) => updateSetting('qobuz_auth_token', e.target.value)}
+            description="Alternative to email/password. Found in browser Local Storage under 'localuser' > 'token'"
           />
           <div className="grid grid-cols-2 gap-4">
             <Input

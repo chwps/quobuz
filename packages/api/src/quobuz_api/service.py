@@ -56,6 +56,7 @@ class QuobuzDownloadService:
             self._api = QobuzAPI(
                 app_id=self.db.get_setting("qobuz_app_id", self.settings.qobuz_app_id),
                 app_secret=self.db.get_setting("qobuz_app_secret", self.settings.qobuz_app_secret),
+                user_auth_token=self.db.get_setting("qobuz_auth_token", ""),
                 email=self.db.get_setting("qobuz_email", self.settings.qobuz_email),
                 password=self.db.get_setting("qobuz_password", self.settings.qobuz_password),
             )
