@@ -31,30 +31,18 @@ RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 
-# ── Copy Python package manifests first (for layer caching) ──
-COPY packages/core/pyproject.toml packages/core/uv.lock* ./packages/core/
-COPY packages/api/pyproject.toml packages/api/uv.lock* ./packages/api/
+# ── Copy Python package manifests ──
+COPY packages/core/pyproject.toml ./packages/core/
+COPY packages/api/pyproject.toml ./packages/api/
 
 # ── Copy source code ──
 COPY packages/core/src ./packages/core/src
 COPY packages/api/src ./packages/api/src
 
 # ── Install Python dependencies ──
-# --system: Docker = single process, no venv needed
-# --break-system-packages: safety for Debian-based images with PEP 668
-UV_FLAGS="--system --break-system-packages"
-
-RUN if [ -f packages/core/uv.lock ]; then \
-      uv pip install $UV_FLAGS \
-        -r packages/core/uv.lock \
-        -r packages/api/uv.lock \
-        -e ./packages/core \
-        -e ./packages/api; \
-    else \
-      uv pip install $UV_FLAGS \
-        -e ./packages/core \
-        -e ./packages/api; \
-    fi
+RUN uv pip install --system --break-system-packages \
+    -e ./packages/core \
+    -e ./packages/api
 
 # ── Copy built WebUI ──
 # Vite outDir: ../quobuz_data/webui_build (relative to /app/web)
